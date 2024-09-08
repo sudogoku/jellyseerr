@@ -9,6 +9,7 @@ import type { DownloadingItem } from '@server/lib/downloadtracker';
 import downloadTracker from '@server/lib/downloadtracker';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
+import { getHostname } from '@server/utils/getHostname';
 import {
   AfterLoad,
   Column,
@@ -210,16 +211,14 @@ class Media {
       }
     } else {
       const pageName =
-        process.env.JELLYFIN_TYPE === 'emby' ? 'item' : 'details';
-      const { serverId, hostname, externalHostname } = getSettings().jellyfin;
-      let jellyfinHost =
+        getSettings().main.mediaServerType == MediaServerType.EMBY
+          ? 'item'
+          : 'details';
+      const { serverId, externalHostname } = getSettings().jellyfin;
+      const jellyfinHost =
         externalHostname && externalHostname.length > 0
           ? externalHostname
-          : hostname;
-
-      jellyfinHost = jellyfinHost.endsWith('/')
-        ? jellyfinHost.slice(0, -1)
-        : jellyfinHost;
+          : getHostname();
 
       if (this.jellyfinMediaId) {
         this.mediaUrl = `${jellyfinHost}/web/index.html#!/${pageName}?id=${this.jellyfinMediaId}&context=home&serverId=${serverId}`;

@@ -50,8 +50,8 @@ type OidcSettings = MainSettings['oidc'];
 interface OidcModalProps {
   values: Partial<OidcSettings>;
   errors?: FormikErrors<OidcSettings>;
-  setFieldValue: FormikHelpers<OidcSettings>['setFieldValue'];
-  mediaServerName: string;
+  setFieldValue: FormikHelpers<MainSettings>['setFieldValue'];
+  mediaServerName?: string;
   onClose?: () => void;
   onOk?: () => void;
 }

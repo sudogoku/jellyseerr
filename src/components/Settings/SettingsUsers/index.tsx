@@ -10,20 +10,19 @@ import OidcModal, {
 } from '@app/components/Settings/OidcModal';
 import useSettings from '@app/hooks/useSettings';
 import globalMessages from '@app/i18n/globalMessages';
+import defineMessages from '@app/utils/defineMessages';
 import { ArrowDownOnSquareIcon } from '@heroicons/react/24/outline';
 import { CogIcon } from '@heroicons/react/24/solid';
 import { MediaServerType } from '@server/constants/server';
 import type { MainSettings } from '@server/lib/settings';
-import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
-import getConfig from 'next/config';
 import { useState } from 'react';
-import { defineMessages, useIntl, type IntlShape } from 'react-intl';
+import { useIntl, type IntlShape } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR, { mutate } from 'swr';
 import * as yup from 'yup';
 
-const messages = defineMessages({
+const messages = defineMessages('components.Settings.SettingsUsers', {
   users: 'Users',
   userSettings: 'User Settings',
   userSettingsDescription: 'Configure global and default user settings.',
@@ -101,20 +100,20 @@ const SettingsUsers = () => {
     mutate: revalidate,
   } = useSWR<MainSettings>('/api/v1/settings/main');
   const settings = useSettings();
-  const { publicRuntimeConfig } = getConfig();
-  // [showDialog, isFirstOpen]
   const [showOidcDialog, setShowOidcDialog] = useState<boolean>(false);
 
   if (!data && !error) {
     return <LoadingSpinner />;
   }
 
-  const mediaServerName =
-    publicRuntimeConfig.JELLYFIN_TYPE == 'emby'
-      ? 'Emby'
-      : settings.currentSettings.mediaServerType === MediaServerType.PLEX
-      ? 'Plex'
-      : 'Jellyfin';
+  const mediaServerFormatValues = {
+    mediaServerName:
+      settings.currentSettings.mediaServerType === MediaServerType.JELLYFIN
+        ? 'Jellyfin'
+        : settings.currentSettings.mediaServerType === MediaServerType.EMBY
+        ? 'Emby'
+        : undefined,
+  };
 
   return (
     <>
@@ -148,24 +147,31 @@ const SettingsUsers = () => {
           enableReinitialize
           onSubmit={async (values) => {
             try {
-              await axios.post('/api/v1/settings/main', {
-                localLogin: values.localLogin,
-                newPlexLogin: values.newPlexLogin,
-                mediaServerLogin: values.mediaServerLogin,
-                oidcLogin: values.oidcLogin,
-                oidc: values.oidc,
-                defaultQuotas: {
-                  movie: {
-                    quotaLimit: values.movieQuotaLimit,
-                    quotaDays: values.movieQuotaDays,
-                  },
-                  tv: {
-                    quotaLimit: values.tvQuotaLimit,
-                    quotaDays: values.tvQuotaDays,
-                  },
+              const res = await fetch('/api/v1/settings/main', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
                 },
-                defaultPermissions: values.defaultPermissions,
+                body: JSON.stringify({
+                  localLogin: values.localLogin,
+                  newPlexLogin: values.newPlexLogin,
+                  mediaServerLogin: values.mediaServerLogin,
+                  oidcLogin: values.oidcLogin,
+                  oidc: values.oidc,
+                  defaultQuotas: {
+                    movie: {
+                      quotaLimit: values.movieQuotaLimit,
+                      quotaDays: values.movieQuotaDays,
+                    },
+                    tv: {
+                      quotaLimit: values.tvQuotaLimit,
+                      quotaDays: values.tvQuotaDays,
+                    },
+                  },
+                  defaultPermissions: values.defaultPermissions,
+                }),
               });
+              if (!res.ok) throw new Error();
               mutate('/api/v1/settings/public');
 
               addToast(intl.formatMessage(messages.toastSettingsSuccess), {
@@ -214,7 +220,7 @@ const SettingsUsers = () => {
                           label={intl.formatMessage(messages.localLogin)}
                           description={intl.formatMessage(
                             messages.localLoginTip,
-                            { mediaServerName }
+                            mediaServerFormatValues
                           )}
                           onChange={() =>
                             setFieldValue('localLogin', !values.localLogin)
@@ -223,14 +229,13 @@ const SettingsUsers = () => {
                         <LabeledCheckbox
                           id="mediaServerLogin"
                           className="mt-4"
-                          label={intl.formatMessage(messages.mediaServerLogin, {
-                            mediaServerName,
-                          })}
+                          label={intl.formatMessage(
+                            messages.mediaServerLogin,
+                            mediaServerFormatValues
+                          )}
                           description={intl.formatMessage(
                             messages.mediaServerLoginTip,
-                            {
-                              mediaServerName,
-                            }
+                            mediaServerFormatValues
                           )}
                           onChange={() =>
                             setFieldValue(
@@ -268,20 +273,22 @@ const SettingsUsers = () => {
                     values={values.oidc}
                     errors={errors.oidc}
                     setFieldValue={setFieldValue}
-                    mediaServerName={mediaServerName}
+                    mediaServerName={mediaServerFormatValues.mediaServerName}
                     onOk={() => setShowOidcDialog(false)}
                     onClose={() => setFieldValue('oidcLogin', false)}
                   />
                 )}
                 <div className="form-row">
                   <label htmlFor="newPlexLogin" className="checkbox-label">
-                    {intl.formatMessage(messages.newPlexLogin, {
-                      mediaServerName,
-                    })}
+                    {intl.formatMessage(
+                      messages.newPlexLogin,
+                      mediaServerFormatValues
+                    )}
                     <span className="label-tip">
-                      {intl.formatMessage(messages.newPlexLoginTip, {
-                        mediaServerName,
-                      })}
+                      {intl.formatMessage(
+                        messages.newPlexLoginTip,
+                        mediaServerFormatValues
+                      )}
                     </span>
                   </label>
                   <div className="form-input-area">

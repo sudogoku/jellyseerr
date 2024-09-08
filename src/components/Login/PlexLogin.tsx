@@ -1,9 +1,7 @@
 import globalMessages from '@app/i18n/globalMessages';
 import PlexOAuth from '@app/utils/plex';
 import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
-import type React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 
 const messages = defineMessages({
@@ -35,17 +33,32 @@ const PlexLogin: React.FC<PlexLoginProps> = ({
   // ask swr to revalidate the user which _should_ come back with a valid user.
   useEffect(() => {
     const login = async () => {
-      if (setProcessing) setProcessing(true);
+      setProcessing?.(true);
       try {
-        const response = await axios.post('/api/v1/auth/plex', { authToken });
+        const res = await fetch('/api/v1/auth/plex', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ authToken }),
+        });
+        if (!res.ok) throw new Error(res.statusText, { cause: res });
+        const data = await res.json();
 
-        if (response.data?.id) {
+        if (data?.id) {
           onAuthenticated();
         }
       } catch (e) {
-        if (onError) onError(e.response.data.message);
+        let errorData;
+        try {
+          errorData = await e.cause?.text();
+          errorData = JSON.parse(errorData);
+        } catch {
+          /* empty */
+        }
+        onError?.(errorData?.message || '');
         setAuthToken(undefined);
-        if (setProcessing) setProcessing(false);
+        setProcessing?.(false);
       }
     };
     if (authToken) {

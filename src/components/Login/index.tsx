@@ -6,18 +6,19 @@ import LanguagePicker from '@app/components/Layout/LanguagePicker';
 import ErrorCallout from '@app/components/Login/ErrorCallout';
 import useSettings from '@app/hooks/useSettings';
 import { useUser } from '@app/hooks/useUser';
+import defineMessages from '@app/utils/defineMessages';
 import { MediaServerType } from '@server/constants/server';
-import getConfig from 'next/config';
 import { useRouter } from 'next/dist/client/router';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { defineMessages, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 import JellyfinLogin from './JellyfinLogin';
 import LocalLogin from './LocalLogin';
 import OidcLogin from './OidcLogin';
 import PlexLogin from './PlexLogin';
 
-const messages = defineMessages({
+const messages = defineMessages('components.Login', {
   signin: 'Sign In',
   signinheader: 'Sign in to continue',
   useplexaccount: 'Use your Plex account',
@@ -34,7 +35,6 @@ const Login = () => {
   const { user, revalidate } = useUser();
   const router = useRouter();
   const settings = useSettings();
-  const { publicRuntimeConfig } = getConfig();
 
   // Effect that is triggered whenever `useUser`'s user changes. If we get a new
   // valid user, we redirect the user to the home page as the login was successful.
@@ -50,18 +50,25 @@ const Login = () => {
     revalidateOnFocus: false,
   });
 
+  const mediaServerFormatValues = {
+    mediaServerName:
+      settings.currentSettings.mediaServerType === MediaServerType.JELLYFIN
+        ? 'Jellyfin'
+        : settings.currentSettings.mediaServerType === MediaServerType.EMBY
+        ? 'Emby'
+        : undefined,
+  };
+
   const loginSections = [
     {
       // Media Server Login
       title:
         settings.currentSettings.mediaServerType == MediaServerType.PLEX
           ? intl.formatMessage(messages.useplexaccount)
-          : intl.formatMessage(messages.usejellyfinaccount, {
-              mediaServerName:
-                publicRuntimeConfig.JELLYFIN_TYPE == 'emby'
-                  ? 'Emby'
-                  : 'Jellyfin',
-            }),
+          : intl.formatMessage(
+              messages.usejellyfinaccount,
+              mediaServerFormatValues
+            ),
       enabled: settings.currentSettings.mediaServerLogin,
       content:
         settings.currentSettings.mediaServerType == MediaServerType.PLEX ? (
@@ -115,8 +122,10 @@ const Login = () => {
         <LanguagePicker />
       </div>
       <div className="relative z-40 mt-10 flex flex-col items-center px-4 sm:mx-auto sm:w-full sm:max-w-md">
-        <img src="/logo_stacked.svg" className="mb-10 max-w-full" alt="Logo" />
-        <h2 className="mt-2 text-center text-3xl font-extrabold leading-9 text-gray-100">
+        <div className="relative h-48 w-full max-w-full">
+          <Image src="/logo_stacked.svg" alt="Logo" fill />
+        </div>
+        <h2 className="mt-12 text-center text-3xl font-extrabold leading-9 text-gray-100">
           {intl.formatMessage(messages.signinheader)}
         </h2>
       </div>
