@@ -3,7 +3,6 @@ import useSettings from '@app/hooks/useSettings';
 import globalMessages from '@app/i18n/globalMessages';
 import OIDCAuth from '@app/utils/oidc';
 import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
-import type React from 'react';
 import { useEffect } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 

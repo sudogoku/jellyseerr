@@ -1,6 +1,5 @@
 import Alert from '@app/components/Common/Alert';
 import { Transition } from '@headlessui/react';
-import type React from 'react';
 
 interface LoginErrorProps {
   error: string;

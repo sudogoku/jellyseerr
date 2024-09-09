@@ -5,7 +5,6 @@ import type {
   OidcTokenResponse,
 } from '@server/interfaces/api/oidcInterfaces';
 import { getSettings } from '@server/lib/settings';
-import axios from 'axios';
 import type { Request } from 'express';
 import * as yup from 'yup';
 
@@ -16,13 +15,11 @@ export async function getOIDCWellknownConfiguration(domain: string) {
     domain.replace(/\/$/, '') + '/.well-known/openid-configuration'
   ).toString();
 
-  const wellKnownInfo: OidcProviderMetadata = await axios
-    .get(wellKnownUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-    .then((r) => r.data);
+  const wellKnownInfo: OidcProviderMetadata = await fetch(wellKnownUrl, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  }).then((response) => response.json());
 
   return wellKnownInfo;
 }
@@ -68,24 +65,23 @@ export async function fetchOIDCTokenData(
   formData.append('client_id', oidc.clientId);
   formData.append('code', code);
 
-  return await axios
-    .post<OidcTokenResponse>(wellKnownInfo.token_endpoint, formData)
-    .then((r) => r.data);
+  return fetch(wellKnownInfo.token_endpoint, {
+    method: 'POST',
+    body: formData,
+  }).then((response) => response.json());
 }
 
 export async function getOIDCUserInfo(
   wellKnownInfo: OidcProviderMetadata,
   authToken: string
 ) {
-  const userInfo = await axios
-    .get(wellKnownInfo.userinfo_endpoint, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        Accept: 'application/json',
-      },
-    })
-    .then((r) => r.data);
-
+  const response = await fetch(wellKnownInfo.userinfo_endpoint, {
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+      Accept: 'application/json',
+    },
+  });
+  const userInfo = await response.json();
   return userInfo;
 }
 
